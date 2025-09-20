@@ -1,0 +1,395 @@
+    include inc/music.inc
+    include inc/screen.inc
+
+    section	code,text
+
+    global start
+
+IMAGES_BASE equ phc_file_footer
+IMAGES_PHC25 equ IMAGES_BASE
+IMAGES_SPEC1 equ IMAGES_PHC25+924
+IMAGES_SPEC2 equ IMAGES_SPEC1+800
+
+VRAM_LOGO_START equ $6000+32*4+8
+VRAM_SPEC1 equ $6000+32*8+7
+VRAM_SPEC2 equ $6000+32*10+1
+
+    if DEBUG = 1
+    global emulator_security_idle
+    endif
+
+start:
+    di ; Disable interrupts
+    ld sp,$ffff
+
+    ld hl,rlh_phc25
+    ld de,IMAGES_PHC25
+    call decompress_rlh
+    ld hl,rlh_spec1
+    ld de,IMAGES_SPEC1
+    call decompress_rlh
+    ld hl,rlh_spec2
+    ld de,IMAGES_SPEC2
+    call decompress_rlh
+
+    call switch_to_mode_graphics_vsd_green
+
+    ld a,$ff
+    call clear_screen
+
+    call fill_with_white
+
+    ld c,60
+    call wait_for_vbl_count
+
+    ld a,MUSIC_NUMBER_INTRO
+    call music_init
+
+    ld hl,IMAGES_PHC25
+    ld de,VRAM_LOGO_START
+
+    ld a,1
+    call pause
+
+    ld ixl,14
+    call anim
+
+    ld a,20
+    call pause
+
+    ld ixl,4
+    call anim
+    push hl
+    push de
+
+    ld a,2
+    call pause
+
+    ld a,%100110
+    ld (filling_pattern),a
+    ld a,%011001
+    ld (filling_pattern+1),a
+    call fill_with_black_and_white
+
+    ld a,2
+    call pause
+
+    ld a,%100100
+    ld (filling_pattern),a
+    ld a,%011000
+    ld (filling_pattern+1),a
+    call fill_with_black_and_white
+
+    ld a,2
+    call pause
+
+    ld a,%000100
+    ld (filling_pattern),a
+    ld a,%001000
+    ld (filling_pattern+1),a
+    call fill_with_black_and_white
+
+    ld a,2
+    call pause
+
+    ld a,%000000
+    ld (filling_pattern),a
+    ld a,%000000
+    ld (filling_pattern+1),a
+    call fill_with_black_and_white
+
+    ld a,2
+    call pause
+
+    pop de
+    pop hl
+    ld ixl,4
+    call anim
+
+    ld a,1
+    call pause
+
+    ld hl,IMAGES_SPEC1
+    ld de,VRAM_SPEC1
+
+    ld ixl,25
+    call anim_1
+
+    ld hl,IMAGES_SPEC2
+    ld de,VRAM_SPEC2
+
+    ld ixl,42
+    call anim_2
+
+.loop
+    ld a,(music_pointer)
+    or a
+    jr z,music_is_over
+    call pause
+
+    jr .loop
+
+music_is_over:
+    call ay8910_init
+
+    ld hl,VRAM_SPEC1+16
+    ld a,%01010101
+    ld (hl),a
+    inc hl
+    ld a,%01000011
+    ld (hl),a
+    
+    ld hl,VRAM_SPEC1+16+32
+    ld a,%01010100
+    ld (hl),a
+    inc hl
+    ld a,%01011100
+    ld (hl),a
+
+
+    ld c,180
+    call wait_for_vbl_count
+
+
+    ld a,%000000
+    ld (filling_pattern),a
+    ld a,%000000
+    ld (filling_pattern+1),a
+    call fill_with_black_and_white
+
+    ld c,2
+    call wait_for_vbl_count
+
+    ld a,%000100
+    ld (filling_pattern),a
+    ld a,%001000
+    ld (filling_pattern+1),a
+    call fill_with_black_and_white
+
+    ld c,2
+    call wait_for_vbl_count
+
+    ld a,%100100
+    ld (filling_pattern),a
+    ld a,%011000
+    ld (filling_pattern+1),a
+    call fill_with_black_and_white
+
+    ld c,2
+    call wait_for_vbl_count
+
+    ld a,%100110
+    ld (filling_pattern),a
+    ld a,%011001
+    ld (filling_pattern+1),a
+    call fill_with_black_and_white
+
+    ld c,2
+    call wait_for_vbl_count
+
+    ld a,%111111
+    ld (filling_pattern),a
+    ld a,%111111
+    ld (filling_pattern+1),a
+    call fill_with_black_and_white
+
+    ld c,2
+    call wait_for_vbl_count
+
+    call show_rpufos
+
+    ld c,240
+    call wait_for_vbl_count
+    ld c,240
+    call wait_for_vbl_count
+
+    call show_kids
+
+    ld c,240
+    call wait_for_vbl_count
+    ld c,240
+    call wait_for_vbl_count
+
+    call show_ordi
+
+    ld c,240
+    call wait_for_vbl_count
+    ld c,240
+    call wait_for_vbl_count
+
+    jp start
+
+    if DEBUG = 1
+emulator_security_idle:
+    ; wait for a known amount of cycles to mimic the real hardware => 29 lines
+    ld b,2
+    ld c,125
+.innerloop
+    dec c
+    jr nz,.innerloop
+    djnz .innerloop
+    ret
+    endif
+
+; show 28x9 image => 14*3 = 42 bytes
+show_image:
+    ld iyl,3
+.loopy
+    ld bc,14
+    ldir
+    ex de,hl
+    ld bc,18
+    add hl,bc
+    ex de,hl
+
+    dec iyl
+    jr nz,.loopy
+    ret
+
+; show 32x6 image => 16*2 = 32 bytes
+show_text_1:
+    ld iyl,2
+.loopy
+    ld bc,16
+    ldir
+    ex de,hl
+    ld bc,16
+    add hl,bc
+    ex de,hl
+
+    dec iyl
+    jr nz,.loopy
+    ret
+
+; show 56x6 image => 28*2 = 32 bytes
+show_text_2:
+    ld iyl,2
+.loopy
+    ld bc,28
+    ldir
+    ex de,hl
+    ld bc,4
+    add hl,bc
+    ex de,hl
+
+    dec iyl
+    jr nz,.loopy
+    ret
+
+fill_with_white:
+    ld hl,VRAM_ADDRESS
+    ld de,VRAM_ADDRESS+1
+    ld a,%111111
+    ld (hl),a
+    ld bc,16*32-1
+    ldir
+    ret
+
+; ixl <= image_count
+anim:
+    call wait_for_vbl
+.loopanim
+    ld a,3
+    call pause
+    push de
+    call show_image
+    pop de
+    dec ixl
+    jr nz,.loopanim
+    ret
+
+; ixl <= image_count
+anim_1:
+    call wait_for_vbl
+.loopanim
+    ld a,2
+    call pause
+    push de
+    call show_text_1
+    pop de
+    dec ixl
+    jr nz,.loopanim
+    ret
+
+; ixl <= image_count
+anim_2:
+    call wait_for_vbl
+.loopanim
+    ld a,2
+    call pause
+    push de
+    call show_text_2
+    pop de
+    dec ixl
+    jr nz,.loopanim
+    ret
+
+; [a] <= cycles to wait for
+pause:
+    push bc
+    ld b,a
+.loopwait
+    push hl
+    push de
+    push bc
+    call music_loop
+    pop bc
+    pop de
+    pop hl
+    push af
+    call wait_for_vbl
+    pop af
+    djnz .loopwait
+    pop bc
+    ret
+
+;    dc.b "                  BREAKPOINT                   "
+filling_pattern:
+    dc.b %100110
+    dc.b %011001
+fill_with_black_and_white:
+    ld iyl,8
+    ld hl,VRAM_ADDRESS
+    ld de,VRAM_ADDRESS+1
+.loopy
+    ld a,(filling_pattern)
+    ld (hl),a
+    ld bc,32
+    ldir
+    ld a,(filling_pattern+1)
+    ld (hl),a
+    ld bc,32
+    ldir
+    
+    ld a,iyl
+    cp 5
+    jr nz,.go_loop
+    ld a,1
+    call pause
+.go_loop:
+    dec iyl
+    jr nz,.loopy
+    ret
+
+show_rpufos:
+    call switch_to_mode_graphics_sd_white
+    ld a,%00000000
+    call clear_screen
+    ld hl,rlh_RPUFOS
+    ld de,VRAM_ADDRESS
+    call decompress_rlh
+    ret
+
+show_ordi:
+    call switch_to_mode_graphics_sd_white
+    ld hl,rlh_ordi
+    ld de,VRAM_ADDRESS
+    call decompress_rlh
+    ret
+
+show_kids:
+    call switch_to_mode_graphics_sd_white
+    ld hl,rlh_kids
+    ld de,VRAM_ADDRESS
+    call decompress_rlh
+    ret
