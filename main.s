@@ -147,7 +147,7 @@ music_is_over:
     ld (hl),a
 
 
-    ld c,180
+    ld c,120
     call wait_for_vbl_count
 
 
@@ -198,10 +198,21 @@ music_is_over:
 
     call show_rpufos
 
-    ld c,240
+
+    ld b,20
+.loop_rpufos:
+    ld c,8
     call wait_for_vbl_count
-    ld c,240
+
+    ld a,%01010101 ; green
+    call show_rpufos_square
+
+    ld c,8
     call wait_for_vbl_count
+
+    ld a,%10101010 ; purple
+    call show_rpufos_square
+    djnz .loop_rpufos
 
     call show_kids
 
@@ -230,6 +241,28 @@ emulator_security_idle:
     djnz .innerloop
     ret
     endif
+
+show_rpufos_square:
+    push hl
+    push bc
+    push de
+
+    ld d,16
+    ld bc,31
+    ld hl,VRAM_ADDRESS+11+101*32
+.loopy:
+    ld (hl),a
+    inc hl
+    ld (hl),a
+    add hl,bc
+    dec d
+    jr nz,.loopy
+
+    pop de
+    pop bc
+    pop hl
+    ret
+
 
 ; show 28x9 image => 14*3 = 42 bytes
 show_image:
