@@ -216,10 +216,12 @@ music_is_over:
 
     call show_kids
 
-    ld c,240
-    call wait_for_vbl_count
-    ld c,240
-    call wait_for_vbl_count
+    ld b,240
+.loop_kids_bars
+    call handle_bar
+    call handle_bar
+    call handle_bar
+    djnz .loop_kids_bars
 
     call show_ordi
 
@@ -425,4 +427,5 @@ show_kids:
     ld hl,rlh_kids
     ld de,VRAM_ADDRESS
     call decompress_rlh
+    call init_bar
     ret
