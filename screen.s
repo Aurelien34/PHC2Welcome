@@ -30,12 +30,12 @@ wait_for_vbl:
 .stop
     in a,($40)
     bit 4,a
-    jr nz,.stop
+    jr z,.stop
 
 .start
     in a,($40)
     bit 4,a
-    jr z,.start
+    jr nz,.start
 
     ret
 
@@ -46,11 +46,11 @@ wait_for_vbl_count:
 .waitForStop:
     in a,($40)
     bit 4,a
-    jr nz,.waitForStop
+    jr z,.waitForStop
 .waitForStart:
     in a,($40)
     bit 4,a
-    jr z,.waitForStart
+    jr nz,.waitForStart
     dec c
     jr nz,.waitForStop
     pop af
