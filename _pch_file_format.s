@@ -8,7 +8,7 @@
     dc.b $A5,$A5,$A5,$A5,$A5,$A5,$A5,$A5,$A5,$A5
 
     ; --- [2] Nom du fichier BASIC (6 caractères ASCII)
-    dc.b "EYECAT"
+    dc.b "WELCOM"
 
     section basic,data
 
