@@ -28,6 +28,7 @@ EXTRACT_RAW_IMAGE_DATA=dotnet $(TOOLS_PATH)/ExtractRawImageData.dll
 EXTRACT_COLOR_IMAGE_DATA=dotnet $(TOOLS_PATH)/Extract2BitColorImage.dll
 EXTRACT_GS_IMAGE_DATA=dotnet $(TOOLS_PATH)/Extract2BitGrayScaleImage.dll
 EXTRACT_SG_BW_IMAGE_DATA=dotnet $(TOOLS_PATH)/ExtractSemiGraphicBWImage.dll
+PHC_TO_WAV=$(TOOLS_PATH)/p6towav.exe
 
 # Assembler flags
 ASFLAGS=-chklabels -nocase -Fvobj -Dvasm=1 -quiet
@@ -36,6 +37,7 @@ LDFLAGS=-brawbin1 -Tmain.ld
 # Target and intermediate files
 TARGET=welcome.phc
 SAVESTATE=welcome.sta
+WAVE=welcome.wav
 STUFFING_SAVESTATE=stuffing.sta
 SECTION_MAP_FILE=sectionmap.txt
 RLH_COMPRESSOR_SOURCE_FILE=_rlh_decomp.s
@@ -84,21 +86,31 @@ endef
 
 all:
 	make sta
-
-phc:
-	make $(OUTPUT_PATH)/$(TARGET)
-
-sta:
-	make $(OUTPUT_PATH)/$(SAVESTATE)
+	make wav
 	@echo ************************************
 	@echo *                                  *
 	@echo *            DONE!                 *
 	@echo *                                  *
 	@echo ************************************
 
+phc:
+	make $(OUTPUT_PATH)/$(TARGET)
+
+sta:
+	make $(OUTPUT_PATH)/$(SAVESTATE)
+
+wav:
+	make $(OUTPUT_PATH)/$(WAVE)
+
 rebuild:
 	make clean
 	make all
+
+play: $(OUTPUT_PATH)/$(WAVE)
+	powershell -c (New-Object Media.SoundPlayer $(OUTPUT_PATH)/$(WAVE)).PlaySync();
+
+$(OUTPUT_PATH)/$(WAVE): $(OUTPUT_PATH)/$(TARGET)
+	$(PHC_TO_WAV) $(TARGET) $(WAVE)
 
 $(TO_COMPRESS_PATH)/%.bin: $(TO_COMPRESS_PATH)
 	$(AS) $< -Fbin -o $@ -quiet
@@ -176,4 +188,6 @@ endif
 	cd $(TO_COMPRESS_PATH) & $(foreach FILE,$(COLOR_IMAGES_RAW),del $(notdir $(FILE)) &)
 	cd $(TO_COMPRESS_PATH) & $(foreach FILE,$(GS_IMAGES_RAW),del $(notdir $(FILE)) &)
 	cd $(TO_COMPRESS_PATH) & $(foreach FILE,$(SG_BW_IMAGES_RAW),del $(notdir $(FILE)) &)
-#	cd $(RESOURCES_RAW) & $(foreach FILE,$(EXTRACTED_BMP),del $(notdir $(FILE)) &)
+ifneq ($(wildcard $(WAVE)),)
+	del $(WAVE)
+endif
