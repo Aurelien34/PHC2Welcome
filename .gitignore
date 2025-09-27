@@ -1,0 +1,11 @@
+res_to_compress/*
+res_raw/*
+rlh/*
+obj/*
+precomp/*
+tools/p6towav.exe
+welcome.phc
+welcome.sta
+welcome.wav
+sectionmap.txt
+*.ods#
