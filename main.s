@@ -14,10 +14,6 @@ VRAM_LOGO_START equ $6000+32*4+8
 VRAM_SPEC1 equ $6000+32*8+7
 VRAM_SPEC2 equ $6000+32*10+1
 
-    if DEBUG = 1
-    global emulator_security_idle
-    endif
-
 start:
     di ; Disable interrupts
     ld sp,$ffff
@@ -27,9 +23,11 @@ start:
 .loop:
     ; show eye catcher
     call show_eye_catcher
-    ; stop the music
-    call ay8910_init
 
+    ld a,MUSIC_NUMBER_SLIDESHOW
+    call music_init
+
+    ei ; enable music playing using interrupts
     call transition_to_white
 
     call show_rpufos
@@ -37,6 +35,9 @@ start:
     call show_kids
 
     call show_ordi
+    di ; disable music playing using interrupts
+
+    call ay8910_init
 
     jr .loop
 
@@ -149,6 +150,9 @@ show_eye_catcher:
     jr .loop
 .music_is_over:
     
+    ; stop the music
+    call ay8910_init
+
     ; show "b" and wait
 
     ld hl,VRAM_SPEC1+16

@@ -23,13 +23,20 @@ current_music_instructions_count:
     dc.b $ff
 
 ; Music number in register [a]
+    dc.b "                  BREAKPOINT                   "
 music_init:
+    push af
     call ay8910_init_music
+    pop af
     cp MUSIC_NUMBER_INTRO
     jp nz,.not_music_intro
     call music_init_intro
     jp .common
 .not_music_intro:
+    cp MUSIC_NUMBER_SLIDESHOW
+    jp nz,.not_music_slideshow
+    call music_init_slideshow
+.not_music_slideshow:
 .common:
     ld a,$ff ; ensure we trigger the carry flag on next round
     ld (music_animation_counter),a
@@ -52,11 +59,11 @@ music_loop:
     dc.b $d0 ; "ret nc" not assembled correctly by VASM!
     ; Play current pointer position
     ld a,(music_pointer)
-    add a
-    add a
-    ld c,a
-    ld b,0
-    ld hl,(current_music_data_base_address)
+    ld l,a
+    ld h,0
+    add hl,hl
+    add hl,hl
+    ld bc,(current_music_data_base_address)
     add hl,bc
     ; Now read notes
     ; First byte is flags
@@ -105,6 +112,13 @@ music_loop:
     jr z,.no_vol_max_c
     AYOUT AY8910_REGISTER_VOLUME_C,16
 .no_vol_max_c:
+    bit MUSIC_BIT_UPPER_BYTE_1_CHAN_B,b
+    jr z,.no_upper_byte_1_chan_b
+    AYOUT AY8910_REGISTER_FREQUENCY_B_UPPER,1
+    jr .continue
+.no_upper_byte_1_chan_b:
+    AYOUT AY8910_REGISTER_FREQUENCY_B_UPPER,0
+.continue:
 
     ; Channel A
     ld a,(hl)
@@ -167,6 +181,27 @@ play_tone_frequency_channel_c:
     AY_PUSH_VAL
     ret
 
+vbl_counter:
+    dc.b 0
 music_interrupt_handler:
+    push af
+    ex af,af'
+    push af
+    push hl
+    push de
+    push bc
+
+    ld a,(vbl_counter)
+    inc a
+    ld (vbl_counter),a
+
+    call music_loop
+
+    pop bc
+    pop de
+    pop hl
+    pop af
+    ex af,af'
+    pop af
     ei
     reti
