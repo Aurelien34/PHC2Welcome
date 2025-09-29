@@ -3,7 +3,7 @@
 
     section	code,text
 
-    global music_init, music_loop
+    global music_init, music_loop, music_interrupt_handler
     global current_music_data_base_address, current_music_instructions_count
     global music_animation_counter, music_animation_speed, music_pointer
 
@@ -166,3 +166,7 @@ play_tone_frequency_channel_c:
     ex af,af' ;'
     AY_PUSH_VAL
     ret
+
+music_interrupt_handler:
+    ei
+    reti
