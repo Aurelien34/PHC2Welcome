@@ -22,6 +22,26 @@ start:
     di ; Disable interrupts
     ld sp,$ffff
 
+    call install_im2
+
+.loop:
+    ; show eye catcher
+    call show_eye_catcher
+    ; stop the music
+    call ay8910_init
+
+    call transition_to_white
+
+    call show_rpufos
+
+    call show_kids
+
+    call show_ordi
+
+    jr .loop
+
+
+show_eye_catcher:
     ld hl,rlh_phc25
     ld de,IMAGES_PHC25
     call decompress_rlh
@@ -124,13 +144,12 @@ start:
 .loop
     ld a,(music_pointer)
     or a
-    jr z,music_is_over
+	jr z,.music_is_over
     call pause
-
     jr .loop
-
-music_is_over:
-    call ay8910_init
+.music_is_over:
+    
+    ; show "b" and wait
 
     ld hl,VRAM_SPEC1+16
     ld a,%01010101
@@ -150,7 +169,10 @@ music_is_over:
     ld c,120
     call wait_for_vbl_count
 
+    ret
 
+
+transition_to_white:
     ld a,%000000
     ld (filling_pattern),a
     ld a,%000000
@@ -196,8 +218,15 @@ music_is_over:
     ld c,2
     call wait_for_vbl_count
 
-    call show_rpufos
+    ret
 
+show_rpufos
+    call switch_to_mode_graphics_sd_white
+    ld a,%00000000
+    call clear_screen
+    ld hl,rlh_RPUFOS
+    ld de,VRAM_ADDRESS
+    call decompress_rlh
 
     ld b,20
 .loop_rpufos:
@@ -214,7 +243,14 @@ music_is_over:
     call show_rpufos_square
     djnz .loop_rpufos
 
-    call show_kids
+    ret
+
+show_kids:
+    call switch_to_mode_graphics_sd_white
+    ld hl,rlh_kids
+    ld de,VRAM_ADDRESS
+    call decompress_rlh
+    call init_bar
 
     ld b,240
 .loop_kids_bars
@@ -223,26 +259,21 @@ music_is_over:
     call handle_bar
     djnz .loop_kids_bars
 
-    call show_ordi
-
-    ld c,240
-    call wait_for_vbl_count
-    ld c,240
-    call wait_for_vbl_count
-
-    jp start
-
-    if DEBUG = 1
-emulator_security_idle:
-    ; wait for a known amount of cycles to mimic the real hardware => 29 lines
-    ld b,2
-    ld c,125
-.innerloop
-    dec c
-    jr nz,.innerloop
-    djnz .innerloop
     ret
-    endif
+
+show_ordi:
+    call switch_to_mode_graphics_sd_white
+    ld hl,rlh_ordi
+    ld de,VRAM_ADDRESS
+    call decompress_rlh
+
+    ld c,240
+    call wait_for_vbl_count
+    ld c,240
+    call wait_for_vbl_count
+
+    ret
+
 
 show_rpufos_square:
     push hl
@@ -406,26 +437,3 @@ fill_with_black_and_white:
     jr nz,.loopy
     ret
 
-show_rpufos:
-    call switch_to_mode_graphics_sd_white
-    ld a,%00000000
-    call clear_screen
-    ld hl,rlh_RPUFOS
-    ld de,VRAM_ADDRESS
-    call decompress_rlh
-    ret
-
-show_ordi:
-    call switch_to_mode_graphics_sd_white
-    ld hl,rlh_ordi
-    ld de,VRAM_ADDRESS
-    call decompress_rlh
-    ret
-
-show_kids:
-    call switch_to_mode_graphics_sd_white
-    ld hl,rlh_kids
-    ld de,VRAM_ADDRESS
-    call decompress_rlh
-    call init_bar
-    ret
