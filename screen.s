@@ -30,12 +30,12 @@ wait_for_vbl:
 .stop
     in a,($40)
     bit 4,a
-    jr z,.stop
+    jr nz,.stop
 
 .start
     in a,($40)
     bit 4,a
-    jr nz,.start
+    jr z,.start
 
     ret
 

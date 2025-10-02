@@ -166,7 +166,7 @@ music_init_slideshow:
     ld (current_music_data_base_address),hl
     ld a,(music_instructions_end-music_instructions)/4
     ld (current_music_instructions_count),a
-    ld a,9
+    ld a,18
     ld (music_animation_speed),a
 
     ld hl,init_sequence
