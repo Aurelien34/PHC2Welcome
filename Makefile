@@ -3,6 +3,7 @@ DEBUG = 0
 JOYSTICK = 0
 
 # Path
+MEGA_USB_COM_PORT = COM3
 MAME_SAVESTATE_PATH = C:\MameNew\sta\phc25
 TO_COMPRESS_PATH = res_to_compress
 TO_EXTRACT_AND_COMPRESS_PATH = bmp_to_extract_and_compress
@@ -28,7 +29,8 @@ EXTRACT_RAW_IMAGE_DATA=dotnet $(TOOLS_PATH)/ExtractRawImageData.dll
 EXTRACT_COLOR_IMAGE_DATA=dotnet $(TOOLS_PATH)/Extract2BitColorImage.dll
 EXTRACT_GS_IMAGE_DATA=dotnet $(TOOLS_PATH)/Extract2BitGrayScaleImage.dll
 EXTRACT_SG_BW_IMAGE_DATA=dotnet $(TOOLS_PATH)/ExtractSemiGraphicBWImage.dll
-PHC_TO_WAV=$(TOOLS_PATH)/p6towav.exe
+PHC_TO_WAV=dotnet $(TOOLS_PATH)/PHC2WAV.dll
+PHC2USB=dotnet $(TOOLS_PATH)/PHC2USB.dll
 
 # Assembler flags
 ASFLAGS=-chklabels -nocase -Fvobj -Dvasm=1 -quiet
@@ -38,6 +40,7 @@ LDFLAGS=-brawbin1 -Tmain.ld
 TARGET=welcome.phc
 SAVESTATE=welcome.sta
 WAVE=welcome.wav
+TARGET_USB=welcome.usb
 STUFFING_SAVESTATE=stuffing.sta
 SECTION_MAP_FILE=sectionmap.txt
 RLH_COMPRESSOR_SOURCE_FILE=_rlh_decomp.s
@@ -92,6 +95,12 @@ all:
 	@echo *            DONE!                 *
 	@echo *                                  *
 	@echo ************************************
+
+run: $(OUTPUT_PATH)/$(TARGET_USB)
+	cmd /C "type $(TARGET_USB) > $(MEGA_USB_COM_PORT)"
+
+$(OUTPUT_PATH)/$(TARGET_USB): $(OUTPUT_PATH)/$(TARGET)
+	$(PHC2USB) $(OUTPUT_PATH)/$(TARGET) $(OUTPUT_PATH)/$(TARGET_USB)
 
 phc:
 	make $(OUTPUT_PATH)/$(TARGET)
