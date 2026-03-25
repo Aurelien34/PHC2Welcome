@@ -7,5 +7,6 @@ tools/p6towav.exe
 welcome.phc
 welcome.sta
 welcome.wav
+welcome.usb
 sectionmap.txt
 *.ods#
