@@ -24,17 +24,12 @@ start:
     ; show eye catcher
     call show_eye_catcher
 
-    ld a,MUSIC_NUMBER_SLIDESHOW
-    call music_init
-
-    ei ; enable music playing using interrupts
     call transition_to_white
 
-    call show_rpufos
+    call show_rpufos_and_start_music
 
     call show_kids
 
-    call show_ordi
     di ; disable music playing using interrupts
 
     call ay8910_init
@@ -224,7 +219,7 @@ transition_to_white:
 
     ret
 
-show_rpufos
+show_rpufos_and_start_music:
     call switch_to_mode_graphics_sd_white
     ld a,%00000000
     call clear_screen
@@ -232,22 +227,58 @@ show_rpufos
     ld de,VRAM_ADDRESS
     call decompress_rlh
 
-    ld b,20
+    call play_sample_ready_half
+    ld c,3
+    call wait_for_vbl_count
+
+    call .show_square_green
+
+    call play_sample_ready_half
+    ld c,3
+    call wait_for_vbl_count
+
+    call .show_square_purple
+
+    call play_sample_ready_half
+    ld c,3
+    call wait_for_vbl_count
+
+    call .show_square_green
+
+    call play_sample_ready
+    ld c,20
+    call wait_for_vbl_count
+
+    call .show_square_purple
+
+    call ay8910_init
+    ld a,MUSIC_NUMBER_SLIDESHOW
+    call music_init
+
+    ei ; enable music playing using interrupts
+
+    ld b,26
 .loop_rpufos:
     ld c,8
     call wait_for_vbl_count
 
-    ld a,%01010101 ; green
-    call show_rpufos_square
+    call .show_square_green
 
     ld c,8
     call wait_for_vbl_count
 
-    ld a,%10101010 ; purple
-    call show_rpufos_square
+    call .show_square_purple
     djnz .loop_rpufos
 
     ret
+
+.show_square_green:
+    ld a,%01010101 ; green
+    jr show_rpufos_square
+
+.show_square_purple:
+    ld a,%10101010 ; purple
+    jr show_rpufos_square
 
 show_kids:
     call switch_to_mode_graphics_sd_white
@@ -256,7 +287,7 @@ show_kids:
     call decompress_rlh
     call init_bar
 
-    ld b,240
+    ld b,0
 .loop_kids_bars
     call handle_bar
     call handle_bar
@@ -264,20 +295,6 @@ show_kids:
     djnz .loop_kids_bars
 
     ret
-
-show_ordi:
-    call switch_to_mode_graphics_sd_white
-    ld hl,rlh_ordi
-    ld de,VRAM_ADDRESS
-    call decompress_rlh
-
-    ld c,240
-    call wait_for_vbl_count
-    ld c,240
-    call wait_for_vbl_count
-
-    ret
-
 
 show_rpufos_square:
     push hl

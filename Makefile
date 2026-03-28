@@ -1,6 +1,5 @@
 # Debug
-DEBUG = 0
-JOYSTICK = 0
+DEBUG = 0 # set to 1 to run in MAME
 
 # Path
 MEGA_USB_COM_PORT = COM3
@@ -10,8 +9,9 @@ TO_EXTRACT_AND_COMPRESS_PATH = bmp_to_extract_and_compress
 TO_EXTRACT_AND_COMPRESS_GS_PATH = grayscale_bmp_to_extract_and_compress
 TO_EXTRACT_AND_COMPRESS_COLOR_PATH = color_bmp_to_extract_and_compress
 TO_EXTRACT_AND_COMPRESS_SEMI_GRAPHIC_BW_PATH = semi_graphic_bw_to_extract_and_compress
-BMP_TO_EXTRACT_PATH = bmp_to_extract
 RESOURCES_RAW = res_raw
+WAV_TO_CONVERT_PATH = wav_files
+
 OUTPUT_PATH = .
 PRECOMP_PATH = precomp
 COMPRESSION_PATH = rlh
@@ -31,6 +31,7 @@ EXTRACT_GS_IMAGE_DATA=dotnet $(TOOLS_PATH)/Extract2BitGrayScaleImage.dll
 EXTRACT_SG_BW_IMAGE_DATA=dotnet $(TOOLS_PATH)/ExtractSemiGraphicBWImage.dll
 PHC_TO_WAV=dotnet $(TOOLS_PATH)/PHC2WAV.dll
 PHC2USB=dotnet $(TOOLS_PATH)/PHC2USB.dll
+WAV_CONVERTER=C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -ExecutionPolicy Bypass -File $(TOOLS_PATH)\convert_sample.ps1
 
 # Assembler flags
 ASFLAGS=-chklabels -nocase -Fvobj -Dvasm=1 -quiet
@@ -55,8 +56,6 @@ TO_COMPRESS_ALL = $(wildcard $(TO_COMPRESS_PATH)/*)
 TO_COMPRESS_BMP = $(wildcard $(TO_COMPRESS_PATH)/*.png)
 TO_COMPRESS_OTHER = $(filter-out %.png,$(TO_COMPRESS_ALL))
 GENERATED_RESOURCE_CODE_FILE = $(COMPRESSED_FILES_INCLUDER)
-TO_EXTRACT_BMP = $(wildcard $(BMP_TO_EXTRACT_PATH)/*.png)
-EXTRACTED_BMP = $(patsubst $(BMP_TO_EXTRACT_PATH)/%.png,$(RESOURCES_RAW)/%.raw,$(TO_EXTRACT_BMP))
 TO_EXTRACT_AND_COMPRESS_BMP = $(wildcard $(TO_EXTRACT_AND_COMPRESS_PATH)/*.png)
 EXTRACTED_TO_COMPRESS = $(patsubst $(TO_EXTRACT_AND_COMPRESS_PATH)/%.png,$(TO_COMPRESS_PATH)/%.raw,$(TO_EXTRACT_AND_COMPRESS_BMP))
 GS_IMAGES_BMP = $(wildcard $(TO_EXTRACT_AND_COMPRESS_GS_PATH)/*.png)
@@ -118,6 +117,8 @@ rebuild:
 play: $(OUTPUT_PATH)/$(WAVE)
 	powershell -c (New-Object Media.SoundPlayer $(OUTPUT_PATH)/$(WAVE)).PlaySync();
 
+$(OBJ_PATH)/samples.o: $(RESOURCES_RAW)/ready.raw
+
 $(OUTPUT_PATH)/$(WAVE): $(OUTPUT_PATH)/$(TARGET)
 	$(PHC_TO_WAV) $(TARGET) $(WAVE)
 
@@ -127,8 +128,8 @@ $(TO_COMPRESS_PATH)/%.bin: $(TO_COMPRESS_PATH)
 $(TO_COMPRESS_PATH)/%.raw: $(TO_EXTRACT_AND_COMPRESS_PATH)/%.png
 	$(EXTRACT_RAW_IMAGE_DATA) $< $@
 
-$(RESOURCES_RAW)/%.raw: $(BMP_TO_EXTRACT_PATH)/%.png $(RESOURCES_RAW)
-	$(EXTRACT_RAW_IMAGE_DATA) $< $@
+$(RESOURCES_RAW)/%.raw: $(WAV_TO_CONVERT_PATH)/%.wav $(RESOURCES_RAW)
+	$(WAV_CONVERTER) -InputPath $< -OutputPath $@
 
 $(foreach file,$(notdir $(basename $(COLOR_IMAGES_RAW))),$(eval $(call COLOR_IMAGES_RAW_EXTRACTION_TEMPLATE,$(file))))
 
@@ -147,7 +148,7 @@ $(OUTPUT_PATH)/$(TARGET): $(OUTPUT_PATH) $(OBJ_PATH) $(OBJ) main.ld
 $(COMPRESSED_FILES_INCLUDER): $(EXTRACTED_TO_COMPRESS) $(CIRCUITS_BIN) $(GS_IMAGES_RAW) $(COLOR_IMAGES_RAW) $(SG_BW_IMAGES_RAW)
 
 $(OBJ_PATH)/%.o: %.s $(INC) $(PRECOMP_PATH)
-	$(AS) $(ASFLAGS) -L $(PRECOMP_PATH)/$<.txt -o $@ $< -DDEBUG=$(DEBUG) -DJOYSTICK=$(JOYSTICK)
+	$(AS) $(ASFLAGS) -L $(PRECOMP_PATH)/$<.txt -o $@ $< -DDEBUG=$(DEBUG)
 
 $(RLH_COMPRESSOR_SOURCE_FILE) $(COMPRESSED_FILES_INCLUDER) $(COMPRESSED): $(TO_COMPRESS_ALL) $(COMPRESSION_PATH) $(TO_COMPRESS_PATH) $(COLOR_IMAGES_RAW) $(GS_IMAGES_RAW) $(SG_BW_IMAGES_RAW)
 	$(HUFF80) $(foreach file,$(notdir $(TO_COMPRESS_BMP)),$(TO_COMPRESS_PATH)/$(basename $(file)).png,$(COMPRESSION_PATH)/$(basename $(file)).rlh,62) $(foreach file,$(notdir $(TO_COMPRESS_OTHER)),$(TO_COMPRESS_PATH)/$(file),$(COMPRESSION_PATH)/$(basename $(file)).rlh) $(RLH_COMPRESSOR_SOURCE_FILE)
@@ -175,6 +176,9 @@ $(RESOURCES_RAW):
 	mkdir $(RESOURCES_RAW)
 
 clean:
+ifneq ($(wildcard $(RESOURCES_RAW)),)
+	rmdir /S /Q $(RESOURCES_RAW)
+endif
 ifneq ($(wildcard $(COMPRESSION_PATH)),)
 	rmdir /S /Q $(COMPRESSION_PATH)
 endif

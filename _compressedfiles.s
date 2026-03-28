@@ -6,9 +6,6 @@ rlh_RPUFOS:
 	global rlh_kids  
 rlh_kids:  
 	incbin "rlh/kids.rlh"  
-	global rlh_ordi  
-rlh_ordi:  
-	incbin "rlh/ordi.rlh"  
 	global rlh_phc25  
 rlh_phc25:  
 	incbin "rlh/phc25.rlh"  

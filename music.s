@@ -23,7 +23,6 @@ current_music_instructions_count:
     dc.b $ff
 
 ; Music number in register [a]
-    dc.b "                  BREAKPOINT                   "
 music_init:
     push af
     call ay8910_init_music
@@ -184,6 +183,7 @@ play_tone_frequency_channel_c:
 vbl_counter:
     dc.b 0
 music_interrupt_handler:
+    di
     push af
     ex af,af'
     push af
@@ -191,12 +191,19 @@ music_interrupt_handler:
     push de
     push bc
 
+
     ld a,(vbl_counter)
     inc a
     ld (vbl_counter),a
 
+    if DEBUG=1
+    bit 0,a
+    jr nz,.skip_frame
+    endif
+
     call music_loop
 
+.skip_frame:
     pop bc
     pop de
     pop hl
